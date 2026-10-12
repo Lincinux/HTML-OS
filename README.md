@@ -12,3 +12,5 @@ A virtual filesystem which stores in browser cache
 Notepad editor and an MS Paint styled applications
 # 
 settings with background changing
+# MACOS or OS
+MacOS has less features, and is mainly just a meme, while OS works.

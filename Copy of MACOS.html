@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUMINA OS // Definitive Edition</title>
+    <style>
+        :root {
+            /* Ultra-Gloss Palette */
+            --bg-gradient: radial-gradient(circle at 50% 100%, #e0f7fa 0%, #e0eafc 100%);
+            /* Glass variables */
+            --glass-surface: rgba(255, 255, 255, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-highlight: rgba(255, 255, 255, 0.9);
+            --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+            --glass-blur: blur(30px) saturate(140%);
+            
+            --text-main: #1e293b;
+            --text-sec: #64748b;
+            --accent: #0ea5e9;
+            --danger: #ef4444;
+            --font-stack: 'Segoe UI Variable', 'Segoe UI', sans-serif;
+            --radius-win: 20px;
+        }
+
+        body.dark-mode {
+            --bg-gradient: radial-gradient(circle at 50% 100%, #0f172a 0%, #020617 100%);
+            --glass-surface: rgba(15, 23, 42, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-highlight: rgba(255, 255, 255, 0.2);
+            --glass-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            --text-main: #f8fafc;
+            --text-sec: #94a3b8;
+        }
+
+        * { box-sizing: border-box; outline: none; }
+
+        body {
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: var(--font-stack);
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            transition: background 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* --- BACKGROUND FX --- */
+        .gloss-mesh {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .gloss-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+
+        .orb-1 { top: -10%; left: 10%; width: 50vw; height: 50vw; background: radial-gradient(#60a5fa, transparent 70%); }
+        .orb-2 { bottom: -20%; right: -5%; width: 60vw; height: 60vw; background: radial-gradient(#c084fc, transparent 70%); animation-delay: -5s; }
+        .orb-3 { top: 40%; left: 30%; width: 30vw; height: 30vw; background: radial-gradient(#2dd4bf, transparent 70%); animation-delay: -10s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(40px, -40px); }
+        }
+
+        /* --- UI LAYER --- */
+        #desktop {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* --- DOCK (Restored Visibility) --- */
+        #dock-container {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 25px;
+            padding: 15px 30px;
+            background: var(--glass-surface);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-radius: 50px;
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid var(--glass-highlight);
+            box-shadow: var(--glass-shadow);
+            z-index: 9000;
+            transition: transform 0.2s, bottom 0.3s;
+        }
+
+        /* --- BUBBLE BUTTONS --- */
+        .app-bubble {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            /* The Bubble Look */
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.2) 20%, rgba(255,255,255,0.05) 100%);
+            box-shadow: 
+                inset -2px -2px 6px rgba(0,0,0,0.1),
+                inset 2px 2px 6px rgba(255,255,255,0.8),
+                0 10px 20px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .app-bubble:hover {
+            transform: translateY(-15px) scale(1.1);
+            box-shadow: 
+                inset -2px -2px 10px rgba(0,0,0,0.1),
+                inset 2px 2px 10px rgba(255,255,255,0.9),
+                0 20px 30px rgba(0,0,0,0.2),
+                0 0 20px rgba(255,255,255,0.6);
+        }
+
+        /* Tooltip Name */
+        .app-bubble::after {
+            content: attr(data-name);
+            position: absolute;
+            top: -45px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            color: #1e293b;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .app-bubble:hover::after { opacity: 1; }
+
+        /* Color hints for bubbles */
+        .app-bubble[data-color="blue"] { background: radial-gradient(circle at 30% 30%, rgba(200,230,255,0.9), rgba(60,160,255,0.1)); }
+        .app-bubble[data-color="purple"] { background: radial-gradient(circle at 30% 30%, rgba(240,200,255,0.9), rgba(160,60,255,0.1)); }
+        .app-bubble[data-color="green"] { background: radial-gradient(circle at 30% 30%, rgba(200,255,220,0.9), rgba(60,255,100,0.1)); }
+        .app-bubble[data-color="orange"] { background: radial-gradient(circle at 30% 30%, rgba(255,230,200,0.9), rgba(255,160,60,0.1)); }
+        .app-bubble[data-color="red"] { background: radial-gradient(circle at 30% 30%, rgba(255,200,200,0.9), rgba(255,60,60,0.1)); }
+
+        /* --- WINDOW SYSTEM --- */
+        .window {
+            position: absolute;
+            background: var(--glass-surface);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-top: 1px solid var(--glass-highlight);
+            border-radius: var(--radius-win);
+            box-shadow: var(--glass-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            opacity: 0;
+            transform: scale(0.9) translateY(20px);
+            transition: opacity 0.3s, transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .window.open { opacity: 1; transform: scale(1) translateY(0); }
+
+        .title-bar {
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            user-select: none;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.15), transparent);
+            cursor: default;
+        }
+
+        .window-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-sec);
+            pointer-events: none;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+        }
+
+        .window-controls { display: flex; gap: 8px; }
+        .win-btn {
+            width: 14px; height: 14px; border-radius: 50%; cursor: pointer;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+        .win-btn:active { transform: scale(0.9); }
+        .close { background: #ff5f57; border: 1px solid #e0443e; }
+        .min { background: #febc2e; border: 1px solid #dba526; }
+        .max { background: #28c840; border: 1px solid #1cb532; }
+
+        .window-body { flex: 1; position: relative; overflow: hidden; }
+        .scroll-content { height: 100%; overflow: auto; padding: 0; }
+
+        /* --- APP SPECIFIC STYLES --- */
+        /* Browser */
+        .browser-bar { padding: 12px; display: flex; gap: 10px; background: rgba(255,255,255,0.1); border-bottom: 1px solid var(--glass-border); }
+        .url-input {
+            flex: 1; background: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.5);
+            padding: 8px 14px; border-radius: 20px; font-size: 13px; color: var(--text-main);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        iframe.web-view { width: 100%; height: 100%; border: none; background: #fff; }
+
+        /* Terminal */
+        .term-container {
+            background: rgba(15, 23, 42, 0.9);
+            color: #4ade80;
+            font-family: 'Consolas', 'Monaco', monospace;
+            padding: 20px;
+            height: 100%;
+            overflow-y: auto;
+            font-size: 14px;
+        }
+        .term-line { margin-bottom: 6px; word-break: break-all; }
+        .term-input {
+            background: transparent; border: none; color: #fff;
+            font-family: inherit; font-size: inherit; width: 80%;
+        }
+
+        /* AI */
+        .chat-wrap { padding: 20px; height: 100%; display: flex; flex-direction: column; }
+        .chat-log { flex: 1; overflow-y: auto; margin-bottom: 15px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-msg { padding: 10px 16px; border-radius: 16px; font-size: 14px; max-width: 85%; line-height: 1.5; }
+        .chat-msg.ai { background: rgba(255,255,255,0.5); border: 1px solid var(--glass-border); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .chat-msg.user { background: var(--accent); color: white; align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 5px 15px rgba(14, 165, 233, 0.3); }
+        .ai-input { 
+            padding: 12px 18px; border-radius: 24px; border: 1px solid var(--glass-border); 
+            background: rgba(255,255,255,0.6); backdrop-filter: blur(5px);
+            transition: all 0.2s;
+        }
+        .ai-input:focus { background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+
+        /* Game */
+        .game-wrap { height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0,0,0,0.8); }
+        canvas { background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        .game-ui { position: absolute; text-align: center; color: white; }
+
+        /* Creator */
+        .creator-ui { display: flex; flex-direction: column; height: 100%; padding: 15px; gap: 10px; }
+        .creator-ui textarea { 
+            flex: 1; border-radius: 12px; border: 1px solid var(--glass-border); padding: 15px; 
+            background: rgba(30, 41, 59, 0.9); color: #a5f3fc; font-family: monospace; 
+        }
+        .btn { padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    </style>
+</head>
+<body>
+
+    <div class="gloss-mesh">
+        <div class="gloss-orb orb-1"></div>
+        <div class="gloss-orb orb-2"></div>
+        <div class="gloss-orb orb-3"></div>
+    </div>
+
+    <div id="desktop"></div>
+
+    <!-- DOCK: Visible by default now -->
+    <div id="dock-container">
+        <div class="app-bubble" data-name="Browser" data-color="blue" onclick="appManager.open('browser')"></div>
+        <div class="app-bubble" data-name="Terminal" data-color="purple" onclick="appManager.open('terminal')"></div>
+        <div class="app-bubble" data-name="Aura AI" data-color="green" onclick="appManager.open('ai')"></div>
+        <div class="app-bubble" data-name="Neon Breaker" data-color="red" onclick="appManager.open('game')"></div>
+        <div class="app-bubble" data-name="App Creator" data-color="orange" onclick="appManager.open('creator')"></div>
+        <div class="app-bubble" data-name="Theme" onclick="toggleTheme()"></div>
+    </div>
+
+    <script>
+        let zIndex = 100;
+        const desktop = document.getElementById('desktop');
+
+        function toggleTheme() { document.body.classList.toggle('dark-mode'); }
+
+        class Window {
+            constructor(title, content, width=600, height=450, isFrame=false) {
+                this.id = 'win-' + Math.random().toString(36).substr(2,9);
+                this.el = document.createElement('div');
+                this.el.className = 'window';
+                this.el.id = this.id;
+                this.el.style.width = width + 'px';
+                this.el.style.height = height + 'px';
+                this.el.style.zIndex = ++zIndex;
+                
+                const bodyHTML = isFrame ? content : `<div class="scroll-content">${content}</div>`;
+
+                this.el.innerHTML = `
+                    <div class="title-bar">
+                        <div class="window-controls">
+                            <div class="win-btn close" onclick="appManager.close('${this.id}')"></div>
+                            <div class="win-btn min" onclick="appManager.minimize('${this.id}')"></div>
+                            <div class="win-btn max" onclick="appManager.maximize('${this.id}')"></div>
+                        </div>
+                        <div class="window-title">${title}</div>
+                        <div style="width: 40px"></div>
+                    </div>
+                    <!-- Invisible drag area covering the header -->
+                    <div class="drag-area" style="position:absolute; top:0; left:0; width:100%; height:44px; z-index:-1;"></div>
+                    <div class="window-body">${bodyHTML}</div>
+                `;
+
+                desktop.appendChild(this.el);
+                this.center();
+                this.dragSetup();
+                // Animation trigger
+                setTimeout(() => this.el.classList.add('open'), 10);
+                this.el.onmousedown = () => this.el.style.zIndex = ++zIndex;
+            }
+
+            center() {
+                const r = desktop.getBoundingClientRect();
+                const w = parseInt(this.el.style.width);
+                const h = parseInt(this.el.style.height);
+                this.el.style.top = Math.max(20, (r.height/2 - h/2)) + 'px';
+                this.el.style.left = Math.max(20, (r.width/2 - w/2)) + 'px';
+            }
+
+            dragSetup() {
+                const header = this.el.querySelector('.drag-area');
+                let isDragging = false, startX, startY, initX, initY;
+                
+                header.onmousedown = e => {
+                    isDragging = true;
+                    startX = e.clientX; startY = e.clientY;
+                    initX = this.el.offsetLeft; initY = this.el.offsetTop;
+                    this.el.style.zIndex = ++zIndex;
+                    // Fix iframe swallowing mouse events
+                    document.querySelectorAll('iframe').forEach(i => i.style.pointerEvents='none');
+                };
+
+                window.onmousemove = e => {
+                    if(!isDragging) return;
+                    this.el.style.left = (initX + (e.clientX - startX)) + 'px';
+                    this.el.style.top = (initY + (e.clientY - startY)) + 'px';
+                };
+
+                window.onmouseup = () => {
+                    isDragging = false;
+                    document.querySelectorAll('iframe').forEach(i => i.style.pointerEvents='auto');
+                };
+            }
+        }
+
+        const appManager = {
+            open: function(app) {
+                switch(app) {
+                    case 'browser':
+                        new Window('Net.Explorer', `
+                            <div style="display:flex; flex-direction:column; height:100%;">
+                                <div class="browser-bar">
+                                    <input type="text" class="url-input" value="https://www.wikipedia.org" placeholder="Enter URL..." onkeydown="if(event.key==='Enter') this.closest('.window-body').querySelector('iframe').src = this.value">
+                                </div>
+                                <iframe class="web-view" src="https://www.wikipedia.org"></iframe>
+                            </div>
+                        `, 850, 550, true);
+                        break;
+                    
+                    case 'terminal':
+                        const termId = 'term-' + Date.now();
+                        new Window('Terminal', `
+                            <div class="term-container" id="${termId}" onclick="document.getElementById('${termId}-in').focus()">
+                                <div class="term-line">Lumina OS Kernel v4.2 [Secure Boot]</div>
+                                <div class="term-line">Type 'help' for commands.</div>
+                                <div class="term-line" id="${termId}-out"></div>
+                                <div style="display:flex;">
+                                    <span style="color:#0ea5e9; margin-right:5px;">user@lumina:~$</span>
+                                    <input type="text" class="term-input" id="${termId}-in" autocomplete="off" onkeydown="handleTerminal(event, '${termId}')">
+                                </div>
+                            </div>
+                        `, 650, 450, true);
+                        setTimeout(() => document.getElementById(`${termId}-in`).focus(), 100);
+                        break;
+
+                    case 'ai':
+                        new Window('Aura AI', `
+                            <div class="chat-wrap">
+                                <div class="chat-log" id="ai-log">
+                                    <div class="chat-msg ai">Systems Online. I am Aura. How can I assist you today?</div>
+                                </div>
+                                <input type="text" class="ai-input" placeholder="Ask anything (math, jokes, time)..." onkeydown="handleAI(event)">
+                            </div>
+                        `, 450, 550);
+                        break;
+
+                    case 'game':
+                        new Window('Neon Breaker', `
+                            <div class="game-wrap">
+                                <canvas id="game-canvas" width="500" height="400"></canvas>
+                                <div class="game-ui" id="game-start-btn">
+                                    <h2 style="margin-bottom:15px; font-weight:300;">NEON BREAKER</h2>
+                                    <button class="btn" onclick="initGame()">START SYSTEM</button>
+                                </div>
+                            </div>
+                        `, 520, 470);
+                        break;
+
+                    case 'creator':
+                        new Window('App Creator', `
+                            <div class="creator-ui">
+                                <textarea id="custom-code" placeholder="<h1>Paste HTML Code Here</h1>\n<p>CSS is inherited from the OS.</p>"></textarea>
+                                <div style="display:flex; gap:10px;">
+                                    <button class="btn" onclick="launchCustom()">Launch Code</button>
+                                    <label class="btn" style="background:#64748b;">
+                                        Import .html
+                                        <input type="file" style="display:none" onchange="importFile(this)">
+                                    </label>
+                                </div>
+                            </div>
+                        `, 600, 500);
+                        break;
+                }
+            },
+            close: (id) => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.style.opacity = 0;
+                el.style.transform = "scale(0.9)";
+                setTimeout(() => el.remove(), 300);
+            },
+            minimize: (id) => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.style.opacity = 0;
+                el.style.transform = "translateY(100px) scale(0.8)";
+                el.style.pointerEvents = "none";
+            },
+            maximize: (id) => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                if(el.style.width === '100%') {
+                    el.style.width = el.dataset.w; el.style.height = el.dataset.h;
+                    el.style.top = el.dataset.t; el.style.left = el.dataset.l;
+                } else {
+                    el.dataset.w = el.style.width; el.dataset.h = el.style.height;
+                    el.dataset.t = el.style.top; el.dataset.l = el.style.left;
+                    el.style.width = '100%'; el.style.height = '100%';
+                    el.style.top = 0; el.style.left = 0;
+                }
+            }
+        };
+
+        /* --- TERMINAL LOGIC --- */
+        function handleTerminal(e, id) {
+            if (e.key === 'Enter') {
+                const input = e.target;
+                const output = document.getElementById(id + '-out');
+                const cmd = input.value.trim();
+                
+                const line = document.createElement('div');
+                line.className = 'term-line';
+                line.innerHTML = `<span style="color:#0ea5e9">user@lumina:~$</span> ${cmd}`;
+                output.appendChild(line);
+
+                let resp = '';
+                const args = cmd.split(' ');
+                
+                switch(args[0].toLowerCase()) {
+                    case 'help': resp = "Available commands: help, date, clear, echo [text], color [hex], reboot"; break;
+                    case 'date': resp = new Date().toString(); break;
+                    case 'clear': output.innerHTML = ''; resp = null; break;
+                    case 'echo': resp = args.slice(1).join(' '); break;
+                    case 'reboot': location.reload(); break;
+                    case 'color': 
+                        if(args[1]) { document.getElementById(id).style.color = args[1]; resp = "Color changed."; }
+                        else resp = "Usage: color #ff0000";
+                        break;
+                    default: if(cmd) resp = `Command not found: ${cmd}`;
+                }
+
+                if(resp) {
+                    const rLine = document.createElement('div');
+                    rLine.className = 'term-line';
+                    rLine.style.color = 'var(--text-sec)';
+                    rLine.textContent = resp;
+                    output.appendChild(rLine);
+                }
+                
+                input.value = '';
+                document.getElementById(id).scrollTop = document.getElementById(id).scrollHeight;
+            }
+        }
+
+        /* --- AI LOGIC --- */
+        function handleAI(e) {
+            if(e.key === 'Enter') {
+                const input = e.target;
+                const log = input.previousElementSibling;
+                const txt = input.value;
+                if(!txt) return;
+
+                log.innerHTML += `<div class="chat-msg user">${txt}</div>`;
+                input.value = '';
+                log.scrollTop = log.scrollHeight;
+
+                setTimeout(() => {
+                    let r = "Processing...";
+                    const l = txt.toLowerCase();
+                    if(l.includes('hello')) r = "Hello! I am ready to assist.";
+                    else if(l.includes('time')) r = "It is currently " + new Date().toLocaleTimeString();
+                    else if(l.includes('open browser')) { appManager.open('browser'); r = "Opening browser..."; }
+                    else if(l.includes('open game')) { appManager.open('game'); r = "Launching Neon Breaker..."; }
+                    else if(l.includes('joke')) r = "Why was the computer cold? It left its Windows open.";
+                    else if(l.match(/\d/)) { try { r = "Result: " + eval(l.replace(/[^\d+*/-]/g,'')); } catch { r="I cannot solve that."; } }
+                    else r = "I am a simulated AI. I can tell time, jokes, do math, or open apps.";
+                    
+                    log.innerHTML += `<div class="chat-msg ai">${r}</div>`;
+                    log.scrollTop = log.scrollHeight;
+                }, 600);
+            }
+        }
+
+        /* --- CREATOR LOGIC --- */
+        function launchCustom() {
+            const code = document.getElementById('custom-code').value;
+            if(code) new Window('Custom App', code, 600, 500);
+        }
+        function importFile(input) {
+            const file = input.files[0];
+            if(file) {
+                const url = URL.createObjectURL(file);
+                new Window(file.name, `<iframe src="${url}" style="width:100%; height:100%; border:none; background:#fff;"></iframe>`, 600, 500, true);
+            }
+        }
+
+        /* --- GAME LOGIC (Restored) --- */
+        let gameAnim;
+        function initGame() {
+            document.getElementById('game-start-btn').style.display='none';
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            let ball = {x:250,y:200,dx:3,dy:-3,r:6};
+            let pad = {x:200,w:80,h:12};
+            let bricks=[]; for(let r=0;r<5;r++)for(let c=0;c<6;c++)bricks.push({x:c*75+25,y:r*25+30,s:1});
+            
+            function loop(){
+                ctx.clearRect(0,0,500,400);
+                // Draw Ball
+                ctx.fillStyle='#0ea5e9'; ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r,0,6.28); ctx.fill();
+                // Draw Paddle
+                ctx.fillStyle='#ef4444'; ctx.fillRect(pad.x,370,pad.w,pad.h);
+                // Draw Bricks
+                bricks.forEach(b=>{ if(b.s){ ctx.fillStyle='#10b981'; ctx.fillRect(b.x,b.y,65,18); }});
+                
+                // Physics
+                if(ball.x<0||ball.x>500) ball.dx*=-1;
+                if(ball.y<0) ball.dy*=-1;
+                if(ball.y>370 && ball.x>pad.x && ball.x<pad.x+pad.w) { ball.dy*=-1; ball.dy *= 1.05; }
+                if(ball.y>400) { cancelAnimationFrame(gameAnim); document.getElementById('game-start-btn').style.display='block'; return; }
+                
+                bricks.forEach(b=>{ if(b.s && ball.x>b.x && ball.x<b.x+65 && ball.y>b.y && ball.y<b.y+18){ ball.dy*=-1; b.s=0; }});
+                
+                ball.x+=ball.dx; ball.y+=ball.dy;
+                if(keys.r && pad.x<420) pad.x+=7; if(keys.l && pad.x>0) pad.x-=7;
+                gameAnim = requestAnimationFrame(loop);
+            }
+            let keys={l:0,r:0};
+            window.onkeydown=e=>{if(e.key=='ArrowLeft')keys.l=1;if(e.key=='ArrowRight')keys.r=1;}
+            window.onkeyup=e=>{if(e.key=='ArrowLeft')keys.l=0;if(e.key=='ArrowRight')keys.r=0;}
+            loop();
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal OS</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* A simple text-shadow for desktop icon text */
+        .text-shadow {
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* New Blue Gradient Wallpaper */
+        body {
+            font-family: 'Tahoma', 'Geneva', sans-serif;
+            background-color: #002244; /* Fallback */
+            background-image: linear-gradient(to bottom, #002244, #00529B);
+            background-size: cover;
+            background-position: center;
+        }
+        
+        /* --- New Taskbar/Start Menu positioning --- */
+        body.taskbar-top #taskbar {
+            top: 0;
+            bottom: auto;
+            border-top: none;
+            border-bottom: 1px solid #404040;
+        }
+        body.taskbar-top #start-menu {
+            top: 48px; /* 12rem * 4 = 48px */
+            bottom: auto;
+        }
+
+        /* Disable text selection during drag */
+        .dragging {
+            user-select: none;
+        }
+
+        /* Custom Win98-style "outset" border */
+        .btn-outset {
+            background-color: #c0c0c0; /* Classic Win98 Gray */
+            border-top: 1px solid #ffffff;
+            border-left: 1px solid #ffffff;
+            border-right: 1px solid #404040;
+            border-bottom: 1px solid #404040;
+        }
+        .btn-outset:active, .btn-outset.active {
+            /* "Inset" on click */
+            border-top: 1px solid #404040;
+            border-left: 1px solid #404040;
+            border-right: 1px solid #ffffff;
+            border-bottom: 1px solid #ffffff;
+        }
+
+        /* Custom Win98-style "inset" border */
+        .panel-inset {
+            border-top: 1px solid #404040;
+            border-left: 1px solid #404040;
+            border-right: 1px solid #ffffff;
+            border-bottom: 1px solid #ffffff;
+        }
+        
+        /* Custom scrollbar for iframe (WebKit only) */
+        ::-webkit-scrollbar {
+            width: 16px;
+            height: 16px;
+            background-color: #c0c0c0;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #c0c0c0;
+            border-top: 1px solid #ffffff;
+            border-left: 1px solid #ffffff;
+            border-right: 1px solid #404040;
+            border-bottom: 1px solid #404040;
+        }
+         ::-webkit-scrollbar-track {
+            background: #dfdfdf;
+        }
+        ::-webkit-scrollbar-button {
+            background-color: #c0c0c0;
+            border-top: 1px solid #ffffff;
+            border-left: 1px solid #ffffff;
+            border-right: 1px solid #404040;
+            border-bottom: 1px solid #404040;
+            display: block;
+            height: 16px;
+            width: 16px;
+        }
+        
+        /* Ensure the textarea in notepad fills the space */
+        .app-window-content textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            resize: none;
+            padding: 4px;
+        }
+        .app-window-content textarea:focus {
+            outline: none;
+        }
+
+        /* --- Paint App Styles --- */
+        .app-toolbar {
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            background-color: #dfdfdf;
+            border-bottom: 1px solid #999;
+            height: 34px; /* Set fixed height for toolbars */
+        }
+        .paint-tool, .color-swatch {
+            width: 24px;
+            height: 24px;
+            margin-right: 4px;
+            border: 1px solid #777;
+            cursor: pointer;
+        }
+        .paint-tool.active, .color-swatch.active {
+            border: 2px solid #000080;
+            box-shadow: inset 0 0 0 1px white;
+        }
+        .color-swatch {
+            border: 1px solid #777;
+        }
+        .paint-canvas {
+            display: block;
+            background-color: white;
+        }
+        
+        /* --- Calculator App Styles --- */
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            height: 100%;
+            background-color: #777;
+        }
+        .calc-display {
+            grid-column: 1 / 5;
+            background-color: #fff;
+            color: #000;
+            text-align: right;
+            font-size: 1.5rem;
+            padding: 10px;
+            overflow: hidden;
+            border-bottom: 1px solid #777;
+        }
+        .calc-button {
+            background-color: #e0e0e0;
+            border: 1px outset #fff;
+            font-size: 1.25rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .calc-button:active {
+            border-style: inset;
+        }
+        .calc-button[data-value="="] {
+            grid-column: 4;
+            grid-row: 4 / 6;
+            background-color: #f0a0a0;
+        }
+        .calc-button[data-value="0"] {
+            grid-column: 1 / 3;
+        }
+        
+        /* --- Browser Info Bar --- */
+        .iframe-info-bar {
+            background-color: #c0c0c0;
+            color: #000;
+            padding: 2px 4px;
+            font-size: 0.75rem;
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+            border-right: 1px solid #404040;
+            border-bottom: 1px solid #404040;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        /* --- Internet Explorer Styles --- */
+        .ie-toolbar-row {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 2px;
+            background-color: #c0c0c0;
+            border-bottom: 1px solid #808080;
+        }
+        .ie-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            padding: 2px 6px;
+            height: 36px;
+            min-width: 40px;
+            background-color: #c0c0c0;
+            border: 1px solid transparent;
+        }
+        .ie-btn:hover {
+            border-top: 1px solid #fff;
+            border-left: 1px solid #fff;
+            border-right: 1px solid #404040;
+            border-bottom: 1px solid #404040;
+        }
+        .ie-btn:active {
+            border-top: 1px solid #404040;
+            border-left: 1px solid #404040;
+            border-right: 1px solid #fff;
+            border-bottom: 1px solid #fff;
+        }
+        .ie-btn svg {
+            width: 18px;
+            height: 18px;
+            margin-bottom: 1px;
+        }
+        .ie-address-row {
+            display: flex;
+            align-items: center;
+            padding: 4px;
+            background-color: #c0c0c0;
+            border-bottom: 1px solid #404040;
+            font-size: 12px;
+        }
+        .ie-address-label {
+            color: #000;
+            margin-right: 6px;
+        }
+        .ie-input-wrapper {
+            flex-grow: 1;
+            background: white;
+            border-top: 1px solid #404040;
+            border-left: 1px solid #404040;
+            border-right: 1px solid #fff;
+            border-bottom: 1px solid #fff;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            padding: 0 2px;
+        }
+        .ie-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 12px;
+            font-family: 'Tahoma', sans-serif;
+        }
+        
+        /* --- File App Styles --- */
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 2px;
+            justify-content: space-between;
+        }
+        .file-item:hover {
+            background-color: #000080;
+            color: white;
+        }
+        .file-icon-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .file-delete-btn {
+            color: #999;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 2px;
+        }
+        .file-item:hover .file-delete-btn {
+            color: #fff;
+            background-color: #c00;
+        }
+
+        /* --- Win98 Context Menu Styles --- */
+        #context-menu {
+            position: fixed;
+            background-color: #c0c0c0;
+            border-top: 1px solid #ffffff;
+            border-left: 1px solid #ffffff;
+            border-right: 1px solid #404040;
+            border-bottom: 1px solid #404040;
+            padding: 2px;
+            z-index: 10000; /* On top of everything */
+        }
+        #context-menu li {
+            padding: 4px 20px 4px 10px;
+            cursor: default;
+        }
+        #context-menu li:hover {
+            background-color: #000080;
+            color: white;
+        }
+
+        /* Text Context Menu Styles */
+        #text-context-menu {
+            position: fixed;
+            background-color: #c0c0c0;
+            border-top: 1px solid #ffffff;
+            border-left: 1px solid #ffffff;
+            border-right: 1px solid #404040;
+            border-bottom: 1px solid #404040;
+            padding: 2px;
+            z-index: 10001; /* On top of the other menu */
+        }
+        #text-context-menu li {
+            padding: 4px 20px 4px 10px;
+            cursor: default;
+        }
+        #text-context-menu li.disabled {
+            color: #888888;
+        }
+        #text-context-menu li:not(.disabled):hover {
+            background-color: #000080;
+            color: white;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden text-black select-none">
+
+    <!-- Desktop -->
+    <main class="h-full w-full p-4">
+        
+        <!-- Desktop Icon: Browser -->
+        <div id="browser-icon" class="flex flex-col items-center w-24 cursor-pointer p-2 rounded-sm hover:bg-black/20">
+            <!-- IE Icon -->
+            <svg class="w-10 h-10 text-[#00529B] bg-white rounded-full p-0.5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM11 19.93C7.05 19.44 4 16.08 4 12C4 11.38 4.08 10.79 4.21 10.21L9 15L11 17V19.93ZM17.9 17.39C17.64 16.8 16.9 16 16 16H15V13L19.5 8.5L20 9V12C20 12.7 19.94 13.39 19.82 14.05L17.9 17.39Z" />
+            </svg>
+            <span class="mt-1 text-sm text-white text-shadow">Internet Explorer</span>
+        </div>
+
+        <!-- App Store Icon -->
+        <div id="app-store-icon" class="flex flex-col items-center w-24 cursor-pointer p-2 rounded-sm hover:bg-black/20">
+            <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+            <span class="mt-1 text-sm text-white text-shadow">App Store</span>
+        </div>
+
+        <!-- Recursive OS Icon -->
+        <div id="os-in-os-icon" class="flex flex-col items-center w-24 cursor-pointer p-2 rounded-sm hover:bg-black/20">
+            <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            <span class="mt-1 text-sm text-white text-shadow">Recursive OS</span>
+        </div>
+
+    </main>
+
+    <!-- Taskbar -->
+    <footer id="taskbar" class="fixed bottom-0 left-0 w-full h-12 bg-[#c0c0c0] border-t border-white flex items-center justify-between px-2 z-[99]">
+        <!-- "Start" Button -->
+        <div class="flex items-center"> <!-- Wrapper for left-side items -->
+            <button id="start-button" class="btn-outset flex items-center h-8 px-2">
+                <svg class="w-5 h-5 mr-1" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M0 2C0 0.895431 0.895431 0 2 0H8V8H0V2Z" />
+                    <path d="M0 12C0 10.8954 0.895431 10 2 10H8V18H0V12Z" />
+                    <path d="M12 2C12 0.895431 12.8954 0 14 0H20V8H12V2Z" />
+                    <path d="M12 12C12 10.8954 12.8954 10 14 10H20V18H12V12Z" />
+                </svg>
+                <span class="font-bold">Start</span>
+            </button>
+        </div>
+        
+        <!-- Clock -->
+        <div id="clock" class="text-sm font-medium panel-inset px-3 py-1 h-8 flex items-center">
+            12:00 PM
+        </div>
+    </footer>
+    
+    <!-- Start Menu (Initially Hidden) -->
+    <div id="start-menu" class="hidden fixed bottom-12 left-0 w-48 bg-[#c0c0c0] btn-outset z-[98] p-1">
+        <ul class="text-black">
+            <li id="start-files" class="flex items-center p-2 hover:bg-[#000080] hover:text-white cursor-pointer">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>
+                <span>Files</span>
+            </li>
+            <li id="start-settings" class="flex items-center p-2 hover:bg-[#000080] hover:text-white cursor-pointer">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.566.379-1.566 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.566 2.6 1.566 2.978 0a1.532 1.532 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 01.947-2.287c1.566-.379-1.566-2.6 0 2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path></svg>
+                <span>Settings</span>
+            </li>
+            <li id="start-notepad" class="flex items-center p-2 hover:bg-[#000080] hover:text-white cursor-pointer">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"></path></svg>
+                <span>Notepad</span>
+            </li>
+            <li id="start-paint" class="flex items-center p-2 hover:bg-[#000080] hover:text-white cursor-pointer">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"></path><path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+                <span>Paint</span>
+            </li>
+            <li id="start-calculator" class="flex items-center p-2 hover:bg-[#000080] hover:text-white cursor-pointer">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v14a1 1 0 01-1 1H4a1 1 0 01-1-1V3zm2 2v2h10V5H5zm0 4v2h2V9H5zm4 0v2h2V9H9zm4 0v2h2V9h-2zm-8 4v2h2v-2H5zm4 0v2h2v-2H9zm4 0v2h2v-2h-2z" clip-rule="evenodd" fill-rule="evenodd"></path></svg>
+                <span>Calculator</span>
+            </li>
+            <!-- NEW: App Store and New Apps -->
+            <li class="h-px bg-gray-500 m-1 border-t border-white"></li>
+            <li id="start-app-store" class="flex items-center p-2 hover:bg-[#000080] hover:text-white cursor-pointer">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"></path></svg>
+                <span>App Store</span>
+            </li>
+            <li id="start-pong" class="flex items-center p-2 hover:bg-[#000080] hover:text-white cursor-pointer">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path d="M16 2H4a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zM6 16v-3H4v3H2V4h2v3h2V4h2v12H6zm3 0v-3H7V7h2v6zm3 0v-3h-2V7h2v6zm3 0v-3h-2V7h2v6z"></path></svg>
+                <span>Pong</span>
+            </li>
+            <li id="start-os-in-os" class="flex items-center p-2 hover:bg-[#000080] hover:text-white cursor-pointer">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 4a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2H3zm14 14H3V6h14v12zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clip-rule="evenodd"></path></svg>
+                <span>Recursive OS</span>
+            </li>
+        </ul>
+    </div>
+
+
+    <!-- === App Windows === -->
+
+    <!-- "Internet Explorer" Window -->
+    <div id="browser-window" class="app-window hidden fixed top-1/4 left-1/4 w-[60vw] h-[60vh] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">Internet Explorer</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        
+        <!-- IE Toolbar -->
+        <div class="ie-toolbar-row">
+            <button class="ie-btn" id="ie-back" title="Back">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                Back
+            </button>
+            <button class="ie-btn" id="ie-forward" title="Forward">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+                Forward
+            </button>
+            <button class="ie-btn" id="ie-stop" title="Stop">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
+                Stop
+            </button>
+            <button class="ie-btn" id="ie-refresh" title="Refresh">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                Refresh
+            </button>
+            <button class="ie-btn" id="ie-home" title="Home">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                Home
+            </button>
+        </div>
+        
+        <!-- Address Bar -->
+        <div class="ie-address-row">
+            <span class="ie-address-label">Address</span>
+            <div class="ie-input-wrapper">
+                <input type="text" id="ie-address-input" class="ie-input" value="about:blank">
+            </div>
+            <button class="ie-btn" id="ie-go" style="height: 22px; min-width: 30px; margin-left: 2px;">Go</button>
+        </div>
+
+        <div class="app-window-content flex-grow bg-white overflow-hidden panel-inset m-1 relative">
+            <iframe id="ie-frame" class="w-full h-full border-none" src="about:blank" sandbox="allow-scripts allow-forms allow-popups allow-pointer-lock allow-popups-to-escape-sandbox allow-modals allow-storage-access-by-user-activation"></iframe>
+        </div>
+        <div class="iframe-info-bar">
+            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            Internet Zone
+        </div>
+    </div>
+    
+    <!-- "App Store" Window -->
+    <div id="app-store-window" class="app-window hidden fixed top-[15%] left-[20%] w-[600px] h-[450px] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">App Store</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        <div class="app-window-content flex-grow bg-white overflow-auto panel-inset m-1 p-4">
+            <div class="flex justify-between items-center pb-2 border-b">
+                <h2 class="text-lg font-bold">Available Apps</h2>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-500">Supports .html (e.g. PLANE.html, LUA.html, unitiny.html)</span>
+                    <button id="install-app-btn" class="btn-outset px-3 h-8 text-sm">Install App</button>
+                </div>
+                <input type="file" id="app-upload-input" class="hidden" accept=".html">
+            </div>
+            
+            <div id="app-store-list" class="mt-2">
+                <!-- App listings added by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- "Files" Window -->
+    <div id="files-window" class="app-window hidden fixed top-[30%] left-[30%] w-[400px] h-[300px] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">Files</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        <div id="file-list-container" class="app-window-content flex-grow bg-white overflow-auto panel-inset m-1 p-2">
+            <p class="text-gray-500 text-center mt-4">No files saved yet.</p>
+        </div>
+    </div>
+    
+    <!-- "Settings" Window -->
+    <div id="settings-window" class="app-window hidden fixed top-[35%] left-[35%] w-[400px] h-[300px] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">Settings</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        <div class="app-window-content flex-grow bg-white overflow-auto panel-inset m-1 p-4">
+            <p class="text-gray-700">Settings</p>
+            <div class="mt-4">
+                <label for="wallpaper-select" class="block text-sm">Wallpaper:</label>
+                <select id="wallpaper-select" class="w-full panel-inset bg-white p-1">
+                    <option value="blue-gradient">Blue (Default)</option>
+                    <option value="purple-gradient">Purple</option>
+                    <option value="green-gradient">Green</option>
+                    <option value="xp-bliss">Windows XP</option>
+                    <option value="custom">Custom URL</option>
+                </select>
+            </div>
+            <div id="custom-wallpaper-input-container" class="mt-2 hidden">
+                <label for="custom-wallpaper-url" class="block text-sm">Image URL:</label>
+                <div class="flex space-x-2">
+                    <input type="text" id="custom-wallpaper-url" class="flex-grow h-8 px-2 text-sm bg-white panel-inset" placeholder="Paste link or upload...">
+                    <button id="custom-wallpaper-set" class="btn-outset px-3 h-8 text-sm">Set</button>
+                    <button id="custom-wallpaper-upload-btn" class="btn-outset px-3 h-8 text-sm">Upload</button>
+                </div>
+                <input type="file" id="wallpaper-upload" class="hidden" accept="image/png, image/jpeg">
+            </div>
+
+             <div class="mt-4">
+                <label for="mouse-speed-slider" class="block text-sm">Mouse Speed: <span id="mouse-speed-value" class="font-bold">5</span></label>
+                <input id="mouse-speed-slider" type="range" class="w-full" min="1" max="10" value="5" />
+            </div>
+            <div class="mt-4">
+                <label for="taskbar-position-select" class="block text-sm">Taskbar Position:</label>
+                <select id="taskbar-position-select" class="w-full panel-inset bg-white p-1">
+                    <option value="bottom">Bottom</option>
+                    <option value="top">Top</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- "Notepad" Window -->
+    <div id="notepad-window" class="app-window hidden fixed top-[40%] left-[40%] w-[400px] h-[300px] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">Untitled - Notepad</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        <div class="app-toolbar">
+            <button class="btn-save btn-outset px-2 text-sm h-6">Save</button>
+        </div>
+        <div class="app-window-content flex-grow bg-white overflow-hidden panel-inset m-1">
+            <textarea class="notepad-textarea panel-inset" placeholder="Start typing..."></textarea>
+        </div>
+    </div>
+    
+    <!-- "Paint" Window -->
+    <div id="paint-window" class="app-window hidden fixed top-[20%] left-[20%] w-[50vw] h-[60vh] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">Untitled - Paint</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        <div class="app-toolbar paint-toolbar">
+            <button class="btn-save btn-outset px-2 text-sm h-6">Save</button>
+            <span class="w-px h-6 bg-gray-500 mx-2"></span>
+            <button class="paint-tool active btn-outset" data-tool="pen" title="Pen">
+                <svg class="w-full h-full p-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg>
+            </button>
+            <button class="paint-tool btn-outset" data-tool="eraser" title="Eraser">
+                <svg class="w-full h-full p-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+            </button>
+            <span class="w-px h-6 bg-gray-500 mx-2"></span>
+            <div class="color-swatch active" data-color="#000000" style="background-color: #000000;"></div>
+            <div class="color-swatch" data-color="#FF0000" style="background-color: #FF0000;"></div>
+            <div class="color-swatch" data-color="#008000" style="background-color: #008000;"></div>
+            <div class="color-swatch" data-color="#0000FF" style="background-color: #0000FF;"></div>
+            <div class="color-swatch" data-color="#FFFF00" style="background-color: #FFFF00;"></div>
+            <span class="w-px h-6 bg-gray-500 mx-2"></span>
+            <button id="clear-paint" class="btn-outset px-2 text-sm h-6">Clear</button>
+        </div>
+        <div class="app-window-content flex-grow bg-gray-400 overflow-hidden panel-inset m-1">
+            <canvas id="paint-canvas" class="paint-canvas"></canvas>
+        </div>
+    </div>
+    
+    <!-- "Calculator" Window -->
+    <div id="calculator-window" class="app-window hidden fixed top-[25%] left-[35%] w-[280px] h-[360px] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">Calculator</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        <div class="app-window-content flex-grow bg-gray-400 overflow-hidden panel-inset m-1">
+            <div class="calculator-grid h-full">
+                <input type="text" id="calc-display" class="calc-display panel-inset" value="0" readonly>
+                <button class="calc-button" data-value="C">C</button>
+                <button class="calc-button" data-value="/">/</button>
+                <button class="calc-button" data-value="*">*</button>
+                <button class="calc-button" data-value="-">-</button>
+                <button class="calc-button" data-value="7">7</button>
+                <button class="calc-button" data-value="8">8</button>
+                <button class="calc-button" data-value="9">9</button>
+                <button class="calc-button" data-value="+">+</button>
+                <button class="calc-button" data-value="4">4</button>
+                <button class="calc-button" data-value="5">5</button>
+                <button class="calc-button" data-value="6">6</button>
+                <button class="calc-button" data-value="=">=</button>
+                <button class="calc-button" data-value="1">1</button>
+                <button class="calc-button" data-value="2">2</button>
+                <button class="calc-button" data-value="3">3</button>
+                <button class="calc-button" data-value="0">0</button>
+                <button class="calc-button" data-value=".">.</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- "Pong" Window -->
+    <div id="pong-window" class="app-window hidden fixed top-[20%] left-[30%] w-[480px] h-[360px] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">Pong</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        <div class="app-toolbar">
+            <button id="start-pong-game" class="btn-outset px-2 text-sm h-6">New Game</button>
+            <button id="pause-pong-game" class="btn-outset px-2 text-sm h-6 ml-2">Pause</button>
+            <span class="ml-4 text-sm">Player: <span id="pong-player-score">0</span></span>
+            <span class="ml-4 text-sm">AI: <span id="pong-ai-score">0</span></span>
+        </div>
+        <div class="app-window-content flex-grow bg-black overflow-hidden panel-inset m-1 relative">
+            <canvas id="pong-canvas" class="bg-black block w-full h-full"></canvas>
+            <div id="pong-pause-screen" class="hidden absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center">
+                <h2 class="text-3xl font-bold">GAME PAUSED</h2>
+                <p class="mt-2">Press "Pause" or "New Game" to resume</p>
+            </div>
+            <div id="pong-error-screen" class="hidden absolute inset-0 bg-red-800 text-white flex flex-col items-center justify-center p-4">
+                <h2 class="text-2xl font-bold">PONG ERROR</h2>
+                <p class="mt-2 text-center">An error occurred. Please restart the game.</p>
+                <p id="pong-error-message" class="mt-2 text-xs bg-black/20 p-2"></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- "User App" Window (for installed apps) -->
+    <div id="user-app-window" class="app-window hidden fixed top-[20%] left-[20%] w-[60vw] h-[60vh] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">User App</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        <div class="app-window-content flex-grow bg-black overflow-hidden panel-inset m-1">
+            <iframe id="user-app-iframe" class="w-full h-full border-none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+        </div>
+    </div>
+
+    <!-- "Recursive OS" Window -->
+    <div id="os-in-os-window" class="app-window hidden fixed top-[15%] left-[15%] w-[70vw] h-[70vh] bg-[#c0c0c0] btn-outset z-40 flex flex-col overflow-hidden text-black" data-is-maximized="false">
+        <div class="window-title-bar h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 cursor-move">
+            <span class="text-sm font-bold text-white ml-1">Recursive OS</span>
+            <div class="flex items-center space-x-1">
+                <button class="btn-maximize w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Maximize">
+                    <svg class="icon-maximize w-3 h-3" viewBox="0 0 10 10" stroke="black" stroke-width="2" fill="none"><rect x="1" y="1" width="8" height="8"/></svg>
+                    <svg class="icon-restore w-3 h-3 hidden" viewBox="0 0 12 12" stroke="black" stroke-width="2" fill="none"><rect x="3" y="1" width="8" height="8"/><polyline points="1,4 1,11 8,11"/></svg>
+                </button>
+                <button class="btn-close w-5 h-5 btn-outset flex items-center justify-center font-bold text-black" title="Close">X</button>
+            </div>
+        </div>
+        <div class="app-window-content flex-grow bg-black overflow-hidden panel-inset m-1">
+            <iframe id="os-in-os-iframe" class="w-full h-full border-none" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals"></iframe>
+        </div>
+    </div>
+    
+    <!-- "Save As" Modal -->
+    <div id="save-as-modal" class="hidden fixed inset-0 bg-black/30 z-[100] flex items-center justify-center">
+        <div class="w-80 bg-[#c0c0c0] btn-outset p-2 flex flex-col">
+            <div class="h-7 bg-gradient-to-r from-[#000080] to-[#1084d0] flex items-center justify-between px-1 -m-2 mb-2">
+                <span class="text-sm font-bold text-white ml-1">Save As</span>
+            </div>
+            <label for="filename-input" class="text-sm mt-4 mb-1">File name:</label>
+            <input type="text" id="filename-input" class="w-full h-8 px-2 text-sm bg-white panel-inset" value="Untitled">
+            <div class="flex justify-end space-x-2 mt-4">
+                <button id="save-as-cancel" class="btn-outset px-4 h-8 text-sm">Cancel</button>
+                <button id="save-as-save" class="btn-outset px-4 h-8 text-sm font-bold">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Win98 Right-Click Context Menu -->
+    <ul id="context-menu" class="hidden text-black text-sm w-48">
+        <li id="context-refresh">Refresh</li>
+        <li class="h-px bg-gray-500 m-1 border-t border-white"></li>
+        <li id="context-fullscreen">Go Fullscreen</li>
+        <li id="context-properties">Properties</li>
+    </ul>
+
+    <!-- Text Right-Click Context Menu -->
+    <ul id="text-context-menu" class="hidden text-black text-sm w-48">
+        <li id="text-context-copy">Copy</li>
+        <li id="text-context-paste">Paste</li>
+    </ul>
+
+
+    <!-- JavaScript -->
+    <script>
+        // --- GLOBAL VARIABLES (Declared here, assigned in initializeOS) ---
+        let wallpaperSelectEl, mouseSpeedSliderEl, mouseSpeedValueEl, taskbarPositionSelectEl, taskbarEl;
+        let calcWindow, calcGrid, calcDisplay;
+        let paintWindow, paintCanvas, paintToolbar, clearPaintBtn, paintCtx;
+        let saveAsModal, saveAsSaveBtn, saveAsCancelBtn, filenameInput, fileListContainer;
+        let appStoreList, installAppBtn, appUploadInput;
+        let pongWindow, pongCanvas, pongCtx, pongPlayerScoreEl, pongAiScoreEl, pongPauseScreen, startPongGameBtn, pausePongGameBtn, pongErrorScreen, pongErrorMessage;
+        let osInOsWindow, osInOsIframe;
+        let userAppWindow, userAppIframe;
+        let startButton, startMenu, clockElement;
+        let contextMenu, textContextMenu, textContextCopy, textContextPaste;
+        // NEW: Browser vars
+        let browserWindow;
+
+        // --- Settings State ---
+        const settings = {
+            wallpaper: 'blue-gradient',
+            mouseSpeed: 5,
+            taskbarPosition: 'bottom',
+            customWallpaperUrl: ''
+        };
+
+        // --- Pong State ---
+        let pongGame = {
+            ball: { x: 0, y: 0, dx: 0, dy: 0, size: 8 },
+            player: { y: 0, score: 0 },
+            ai: { y: 0, score: 0 },
+            paddleHeight: 60,
+            paddleWidth: 10,
+            canvasWidth: 0,
+            canvasHeight: 0,
+            animationFrameId: null,
+            isPaused: true
+        };
+        let pongKeys = { ArrowUp: false, ArrowDown: false };
+
+        // --- Window Management State ---
+        let highestZ = 40;
+        let activeWindow = null;
+        let isDragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+        let appToSave = null;
+        let osClipboardText = '';
+        let lastTextTarget = null;
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', initializeOS);
+
+        function initializeOS() {
+            // Assign DOM elements safely
+            clockElement = document.getElementById('clock');
+            startButton = document.getElementById('start-button');
+            startMenu = document.getElementById('start-menu');
+            
+            wallpaperSelectEl = document.getElementById('wallpaper-select');
+            mouseSpeedSliderEl = document.getElementById('mouse-speed-slider');
+            mouseSpeedValueEl = document.getElementById('mouse-speed-value');
+            taskbarPositionSelectEl = document.getElementById('taskbar-position-select');
+            taskbarEl = document.getElementById('taskbar');
+
+            calcWindow = document.getElementById('calculator-window');
+            calcGrid = calcWindow ? calcWindow.querySelector('.calculator-grid') : null;
+            calcDisplay = document.getElementById('calc-display');
+
+            paintWindow = document.getElementById('paint-window');
+            paintCanvas = document.getElementById('paint-canvas');
+            paintToolbar = paintWindow ? paintWindow.querySelector('.paint-toolbar') : null;
+            clearPaintBtn = document.getElementById('clear-paint');
+            if (paintCanvas) paintCtx = paintCanvas.getContext('2d');
+
+            saveAsModal = document.getElementById('save-as-modal');
+            saveAsSaveBtn = document.getElementById('save-as-save');
+            saveAsCancelBtn = document.getElementById('save-as-cancel');
+            filenameInput = document.getElementById('filename-input');
+            fileListContainer = document.getElementById('file-list-container');
+
+            appStoreList = document.getElementById('app-store-list');
+            installAppBtn = document.getElementById('install-app-btn');
+            appUploadInput = document.getElementById('app-upload-input');
+
+            pongWindow = document.getElementById('pong-window');
+            pongCanvas = document.getElementById('pong-canvas');
+            if (pongCanvas) pongCtx = pongCanvas.getContext('2d');
+            pongPlayerScoreEl = document.getElementById('pong-player-score');
+            pongAiScoreEl = document.getElementById('pong-ai-score');
+            pongPauseScreen = document.getElementById('pong-pause-screen');
+            startPongGameBtn = document.getElementById('start-pong-game');
+            pausePongGameBtn = document.getElementById('pause-pong-game');
+            pongErrorScreen = document.getElementById('pong-error-screen');
+            pongErrorMessage = document.getElementById('pong-error-message');
+
+            osInOsWindow = document.getElementById('os-in-os-window');
+            osInOsIframe = document.getElementById('os-in-os-iframe');
+            
+            userAppWindow = document.getElementById('user-app-window');
+            userAppIframe = document.getElementById('user-app-iframe');
+            
+            // NEW: Get Browser Window
+            browserWindow = document.getElementById('browser-window');
+
+            contextMenu = document.getElementById('context-menu');
+            textContextMenu = document.getElementById('text-context-menu');
+            textContextCopy = document.getElementById('text-context-copy');
+            textContextPaste = document.getElementById('text-context-paste');
+
+            // --- Attach Listeners ---
+            setupClock();
+            setupStartMenu();
+            setupWindowControls();
+            // NEW: Setup Browser
+            setupBrowser(); 
+            setupSettingsListeners();
+            setupCalcListener();
+            setupPaintListeners();
+            setupFileListeners();
+            setupAppStoreListeners();
+            setupPongListeners();
+            setupContextMenu();
+            setupLaunchers();
+            setupGlobalKeys();
+
+            // Load initial state
+            loadSettings();
+            renderFiles();
+        }
+
+        // --- Logic Functions ---
+
+        function setupClock() {
+            function updateClock() {
+                if (!clockElement) return;
+                const now = new Date();
+                const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                clockElement.textContent = time;
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+        }
+
+        function setupStartMenu() {
+            if (!startButton || !startMenu) return;
+            startButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                startButton.classList.toggle('active');
+                startMenu.classList.toggle('hidden');
+            });
+            document.addEventListener('click', (e) => {
+                if (!startMenu.contains(e.target) && e.target !== startButton) {
+                    startButton.classList.remove('active');
+                    startMenu.classList.add('hidden');
+                }
+            });
+        }
+
+        // --- NEW: Internet Explorer Logic ---
+        function setupBrowser() {
+            if (!browserWindow) return;
+            
+            const ieFrame = document.getElementById('ie-frame');
+            const ieAddressInput = document.getElementById('ie-address-input');
+            const ieGoBtn = document.getElementById('ie-go');
+            const ieBackBtn = document.getElementById('ie-back');
+            const ieForwardBtn = document.getElementById('ie-forward');
+            const ieRefreshBtn = document.getElementById('ie-refresh');
+            const ieStopBtn = document.getElementById('ie-stop');
+            const ieHomeBtn = document.getElementById('ie-home');
+
+            // The "Special" permissive Google URL
+            const HOME_URL = 'https://www.google.com/webhp?igu=1';
+
+            function navigate(url) {
+                if (!url) return;
+                url = url.trim();
+                
+                // Simple protocol check
+                if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('about:')) {
+                    // Treat as search if no protocol, but use the permissive URL for search results
+                    url = 'https://www.google.com/search?igu=1&q=' + encodeURIComponent(url);
+                }
+                
+                ieFrame.src = url;
+                ieAddressInput.value = url;
+            }
+
+            // Button Listeners
+            ieGoBtn.addEventListener('click', () => navigate(ieAddressInput.value));
+            
+            ieAddressInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') navigate(ieAddressInput.value);
+            });
+
+            ieRefreshBtn.addEventListener('click', () => {
+                try { ieFrame.contentWindow.location.reload(); } catch(e) { ieFrame.src = ieFrame.src; }
+            });
+            
+            ieStopBtn.addEventListener('click', () => {
+                try { ieFrame.contentWindow.stop(); } catch(e) { /* Cannot stop cross-origin */ }
+            });
+
+            ieHomeBtn.addEventListener('click', () => navigate(HOME_URL));
+
+            // Note: Back/Forward might not work for cross-origin iframes due to browser security,
+            // but we add the logic just in case the history API allows it.
+            ieBackBtn.addEventListener('click', () => {
+                 try { ieFrame.contentWindow.history.back(); } catch(e) { console.log("Back blocked by cross-origin policy"); }
+            });
+            
+            ieForwardBtn.addEventListener('click', () => {
+                 try { ieFrame.contentWindow.history.forward(); } catch(e) { console.log("Forward blocked by cross-origin policy"); }
+            });
+
+            // Set initial home page
+            navigate(HOME_URL);
+        }
+
+        function setupLaunchers() {
+            // Helper to add listener safely
+            const addLaunch = (id, winId) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('click', () => openWindow(winId));
+                    el.addEventListener('dblclick', () => openWindow(winId));
+                }
+            };
+            
+            addLaunch('browser-icon', 'browser-window');
+            addLaunch('start-files', 'files-window');
+            addLaunch('start-settings', 'settings-window');
+            addLaunch('start-notepad', 'notepad-window');
+            addLaunch('start-paint', 'paint-window');
+            addLaunch('start-calculator', 'calculator-window');
+            addLaunch('app-store-icon', 'app-store-window');
+            addLaunch('start-app-store', 'app-store-window');
+            addLaunch('start-pong', 'pong-window');
+            addLaunch('os-in-os-icon', 'os-in-os-window');
+            addLaunch('start-os-in-os', 'os-in-os-window');
+            
+            // Special case: Notepad/Paint new file on launch
+            const np = document.getElementById('start-notepad');
+            if(np) np.addEventListener('click', () => openWindow('notepad-window', true));
+            const pt = document.getElementById('start-paint');
+            if(pt) pt.addEventListener('click', () => openWindow('paint-window', true));
+        }
+
+        function openWindow(windowId, isNewFile = false) {
+            const windowEl = document.getElementById(windowId);
+            if (!windowEl) return;
+            
+            if (isNewFile) {
+                resetApp(windowEl);
+            }
+            
+            windowEl.classList.remove('hidden');
+            bringToFront(windowEl);
+            if (startMenu) startMenu.classList.add('hidden');
+            if (startButton) startButton.classList.remove('active');
+            
+            // Specific App Init logic
+            if (windowId === 'files-window') renderFiles();
+            if (windowId === 'app-store-window') renderAppStore();
+            if (windowId === 'pong-window') initializePongGame();
+            if (windowId === 'os-in-os-window') loadRecursiveOSApp();
+            if (windowId === 'paint-window') resizePaintCanvas(!isNewFile);
+        }
+
+        function bringToFront(windowEl) {
+            highestZ++;
+            windowEl.style.zIndex = highestZ;
+        }
+
+        function resetApp(windowEl) {
+            try {
+                if (!windowEl) return;
+                windowEl.removeAttribute('data-file-id');
+                const titleSpan = windowEl.querySelector('.window-title-bar span');
+                
+                if (windowEl.id === 'notepad-window') {
+                    if (titleSpan) titleSpan.textContent = 'Untitled - Notepad';
+                    const ta = windowEl.querySelector('.notepad-textarea');
+                    if (ta) ta.value = '';
+                } else if (windowEl.id === 'paint-window') {
+                    if (titleSpan) titleSpan.textContent = 'Untitled - Paint';
+                    if (clearPaintBtn) setTimeout(() => clearPaintBtn.click(), 50);
+                } else if (windowEl.id === 'os-in-os-window') {
+                    if (titleSpan) titleSpan.textContent = 'Recursive OS';
+                    if (osInOsIframe) {
+                        osInOsIframe.src = 'about:blank';
+                        osInOsIframe.srcdoc = '';
+                    }
+                } else if (windowEl.id === 'user-app-window') {
+                    if (titleSpan) titleSpan.textContent = 'User App';
+                    if (userAppIframe) userAppIframe.srcdoc = '';
+                    windowEl.removeAttribute('data-app-id');
+                }
+            } catch (e) {
+                console.error("Error resetting app:", e);
+            }
+        }
+
+        function setupWindowControls() {
+            document.addEventListener('click', (e) => {
+                const closeBtn = e.target.closest('.btn-close');
+                if (closeBtn) {
+                    const win = closeBtn.closest('.app-window');
+                    if (win) {
+                        win.classList.add('hidden');
+                        resetApp(win);
+                    }
+                }
+                const maxBtn = e.target.closest('.btn-maximize');
+                if (maxBtn) {
+                    const win = maxBtn.closest('.app-window');
+                    if (win) toggleMaximize(win);
+                }
+                const launchBtn = e.target.closest('.btn-launch-app');
+                if (launchBtn) {
+                    const appId = launchBtn.dataset.app;
+                    if (appId === 'user-app-window') {
+                        launchUserApp(launchBtn.dataset.appId);
+                    } else {
+                        openWindow(appId);
+                    }
+                }
+            });
+
+            document.addEventListener('mousedown', (e) => {
+                const win = e.target.closest('.app-window');
+                if (!win) return;
+                bringToFront(win);
+                const titleBar = e.target.closest('.window-title-bar');
+                if (titleBar && win.dataset.isMaximized !== 'true') {
+                    isDragging = true; activeWindow = win;
+                    offsetX = e.clientX - win.offsetLeft;
+                    offsetY = e.clientY - win.offsetTop;
+                    document.body.classList.add('dragging');
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging || !activeWindow) return;
+                e.preventDefault();
+                let x = e.clientX - offsetX;
+                let y = e.clientY - offsetY;
+                // Simple bounds check could be added here
+                activeWindow.style.left = x + 'px';
+                activeWindow.style.top = y + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false; activeWindow = null;
+                document.body.classList.remove('dragging');
+            });
+        }
+
+        function toggleMaximize(win) {
+            if (win.dataset.isMaximized === 'true') {
+                const ps = JSON.parse(win.dataset.prevStyle || '{}');
+                win.style.top = ps.top; win.style.left = ps.left;
+                win.style.width = ps.width; win.style.height = ps.height;
+                win.dataset.isMaximized = 'false';
+                win.querySelector('.icon-maximize').classList.remove('hidden');
+                win.querySelector('.icon-restore').classList.add('hidden');
+            } else {
+                win.dataset.prevStyle = JSON.stringify({
+                    top: win.style.top, left: win.style.left,
+                    width: win.style.width, height: win.style.height
+                });
+                win.style.top = document.body.classList.contains('taskbar-top') ? '48px' : '0';
+                win.style.left = '0';
+                win.style.width = '100vw';
+                win.style.height = 'calc(100vh - 48px)';
+                win.dataset.isMaximized = 'true';
+                win.querySelector('.icon-maximize').classList.add('hidden');
+                win.querySelector('.icon-restore').classList.remove('hidden');
+            }
+            if (win.id === 'paint-window') setTimeout(() => resizePaintCanvas(true), 50);
+            if (win.id === 'pong-window') setTimeout(() => initializePongGame(), 50);
+        }
+
+        // --- Settings Logic ---
+        function setupSettingsListeners() {
+            if (!wallpaperSelectEl) return;
+            wallpaperSelectEl.addEventListener('change', (e) => {
+                settings.wallpaper = e.target.value;
+                applySettings(); saveSettings();
+            });
+            mouseSpeedSliderEl.addEventListener('input', (e) => {
+                settings.mouseSpeed = e.target.value;
+                applySettings(); saveSettings();
+            });
+            taskbarPositionSelectEl.addEventListener('change', (e) => {
+                settings.taskbarPosition = e.target.value;
+                applySettings(); saveSettings();
+            });
+            document.getElementById('custom-wallpaper-set').addEventListener('click', () => {
+                const url = document.getElementById('custom-wallpaper-url').value;
+                if(url) { settings.customWallpaperUrl = url; applySettings(); saveSettings(); }
+            });
+            document.getElementById('custom-wallpaper-upload-btn').addEventListener('click', () => {
+                document.getElementById('wallpaper-upload').click();
+            });
+            document.getElementById('wallpaper-upload').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    settings.customWallpaperUrl = ev.target.result;
+                    document.getElementById('custom-wallpaper-url').value = "Uploaded File";
+                    applySettings(); saveSettings();
+                };
+                reader.readAsDataURL(file);
+                e.target.value = null;
+            });
+        }
+
+        function applySettings() {
+            document.body.style.backgroundImage = 'none';
+            document.body.style.backgroundColor = '#002244';
+            if (settings.wallpaper === 'blue-gradient') document.body.style.backgroundImage = 'linear-gradient(to bottom, #002244, #00529B)';
+            else if (settings.wallpaper === 'purple-gradient') document.body.style.backgroundImage = 'linear-gradient(to bottom, #4a00e0, #8e2de2)';
+            else if (settings.wallpaper === 'green-gradient') document.body.style.backgroundImage = 'linear-gradient(to bottom, #003300, #006400)';
+            else if (settings.wallpaper === 'xp-bliss') document.body.style.backgroundImage = "url('https://upload.wikimedia.org/wikipedia/en/2/23/Bliss_%28Windows_XP%29.png')";
+            else if (settings.wallpaper === 'custom' && settings.customWallpaperUrl) document.body.style.backgroundImage = `url('${settings.customWallpaperUrl}')`;
+            
+            wallpaperSelectEl.value = settings.wallpaper;
+            mouseSpeedSliderEl.value = settings.mouseSpeed;
+            mouseSpeedValueEl.textContent = settings.mouseSpeed;
+            document.body.classList.toggle('taskbar-top', settings.taskbarPosition === 'top');
+            taskbarPositionSelectEl.value = settings.taskbarPosition;
+            
+            const custInput = document.getElementById('custom-wallpaper-input-container');
+            if(settings.wallpaper === 'custom') custInput.classList.remove('hidden');
+            else custInput.classList.add('hidden');
+        }
+
+        function saveSettings() { localStorage.setItem('minimalOS_settings', JSON.stringify(settings)); }
+        function loadSettings() {
+            const s = JSON.parse(localStorage.getItem('minimalOS_settings') || '{}');
+            Object.assign(settings, s);
+            applySettings();
+        }
+
+        // --- Calculator Logic ---
+        let calcClearNext = false;
+        function setupCalcListener() {
+            if (!calcGrid) return;
+            calcGrid.addEventListener('click', (e) => {
+                if (e.target.matches('.calc-button')) handleCalcInput(e.target.dataset.value);
+            });
+        }
+        function handleCalcInput(val) {
+            let cur = calcDisplay.value;
+            if (val === 'C') { calcDisplay.value = '0'; return; }
+            if (val === '=') {
+                try { calcDisplay.value = eval(cur.replace(/[^0-9+\-*/.]/g, '')); }
+                catch { calcDisplay.value = 'Error'; }
+                calcClearNext = true; return;
+            }
+            if (calcClearNext && !['+','-','*','/'].includes(val)) { cur = '0'; calcClearNext = false; }
+            else calcClearNext = false;
+            calcDisplay.value = (cur === '0' && val !== '.') ? val : cur + val;
+        }
+
+        // --- Paint Logic ---
+        let isPainting = false;
+        let paintState = { tool: 'pen', color: '#000000' };
+        function setupPaintListeners() {
+            if (!paintCanvas) return;
+            paintCanvas.addEventListener('mousedown', (e) => { isPainting = true; paintCtx.beginPath(); paintCtx.moveTo(e.offsetX, e.offsetY); });
+            paintCanvas.addEventListener('mousemove', (e) => {
+                if (!isPainting) return;
+                paintCtx.strokeStyle = paintState.tool === 'eraser' ? '#FFFFFF' : paintState.color;
+                paintCtx.lineWidth = paintState.tool === 'eraser' ? 10 : 3;
+                paintCtx.lineTo(e.offsetX, e.offsetY); paintCtx.stroke();
+                paintCtx.beginPath(); paintCtx.moveTo(e.offsetX, e.offsetY);
+            });
+            paintCanvas.addEventListener('mouseup', () => { isPainting = false; paintCtx.beginPath(); });
+            
+            if (paintToolbar) {
+                paintToolbar.addEventListener('click', (e) => {
+                    const t = e.target.closest('[data-tool]');
+                    const c = e.target.closest('[data-color]');
+                    if (t) {
+                        paintToolbar.querySelectorAll('.paint-tool').forEach(b => b.classList.remove('active'));
+                        t.classList.add('active'); paintState.tool = t.dataset.tool;
+                    }
+                    if (c) {
+                        paintToolbar.querySelectorAll('.color-swatch').forEach(b => b.classList.remove('active'));
+                        c.classList.add('active'); paintState.color = c.dataset.color;
+                    }
+                });
+            }
+            if (clearPaintBtn) {
+                clearPaintBtn.addEventListener('click', () => {
+                    paintCtx.fillStyle = 'white'; paintCtx.fillRect(0, 0, paintCanvas.width, paintCanvas.height);
+                });
+            }
+        }
+        function resizePaintCanvas(clear = false) {
+            if (!paintCanvas) return;
+            const p = paintCanvas.parentElement;
+            let img;
+            if (!clear) try { img = paintCtx.getImageData(0,0,paintCanvas.width, paintCanvas.height); } catch(e){}
+            paintCanvas.width = p.offsetWidth; paintCanvas.height = p.offsetHeight;
+            paintCtx.fillStyle = 'white'; paintCtx.fillRect(0,0,paintCanvas.width, paintCanvas.height);
+            if (img) paintCtx.putImageData(img, 0, 0);
+        }
+
+        // --- Files Logic ---
+        function getFiles() { return JSON.parse(localStorage.getItem('minimalOS_files') || '[]'); }
+        function saveFiles(f) { localStorage.setItem('minimalOS_files', JSON.stringify(f)); }
+        function renderFiles() {
+            if (!fileListContainer) return;
+            const files = getFiles();
+            fileListContainer.innerHTML = files.length ? '' : '<p class="text-gray-500 text-center mt-4">No files saved yet.</p>';
+            files.forEach(f => {
+                const d = document.createElement('div');
+                d.className = 'file-item';
+                d.setAttribute('data-id', f.id);
+                d.innerHTML = `<div class="flex items-center gap-2 cursor-pointer" data-action="open">
+                    <span class="font-bold">📄</span><span>${f.name}</span></div>
+                    <button class="text-red-500 font-bold" data-action="delete">X</button>`;
+                fileListContainer.appendChild(d);
+            });
+        }
+        function setupFileListeners() {
+            if (!saveAsSaveBtn) return;
+            saveAsCancelBtn.addEventListener('click', () => { saveAsModal.classList.add('hidden'); appToSave = null; });
+            saveAsSaveBtn.addEventListener('click', () => {
+                if (!appToSave) return;
+                const id = appToSave.dataset.fileId || crypto.randomUUID();
+                const name = filenameInput.value || 'Untitled';
+                let content = '', type = '';
+                if (appToSave.id === 'notepad-window') { type = 'notepad'; content = appToSave.querySelector('textarea').value; }
+                else if (appToSave.id === 'paint-window') { type = 'paint'; content = paintCanvas.toDataURL(); }
+                
+                const files = getFiles();
+                const idx = files.findIndex(f => f.id === id);
+                const file = { id, name, type, content };
+                if (idx > -1) files[idx] = file; else files.push(file);
+                saveFiles(files);
+                
+                appToSave.dataset.fileId = id;
+                appToSave.querySelector('.window-title-bar span').textContent = name;
+                saveAsModal.classList.add('hidden'); renderFiles();
+            });
+            fileListContainer.addEventListener('click', (e) => {
+                const item = e.target.closest('.file-item');
+                if (!item) return;
+                const id = item.dataset.id;
+                const action = e.target.closest('[data-action]')?.dataset.action;
+                const files = getFiles();
+                if (action === 'delete') {
+                    saveFiles(files.filter(f => f.id !== id)); renderFiles();
+                } else if (action === 'open') {
+                    const f = files.find(x => x.id === id);
+                    if (!f) return;
+                    const winId = f.type + '-window';
+                    openWindow(winId);
+                    const win = document.getElementById(winId);
+                    win.dataset.fileId = f.id;
+                    win.querySelector('.window-title-bar span').textContent = f.name;
+                    if (f.type === 'notepad') win.querySelector('textarea').value = f.content;
+                    else if (f.type === 'paint') {
+                        const i = new Image();
+                        i.onload = () => { paintCtx.fillRect(0,0,paintCanvas.width, paintCanvas.height); paintCtx.drawImage(i,0,0); };
+                        i.src = f.content;
+                    }
+                }
+            });
+            document.querySelectorAll('.btn-save').forEach(b => {
+                b.addEventListener('click', (e) => {
+                    const w = e.target.closest('.app-window');
+                    if (w.dataset.fileId) { appToSave = w; saveAsSaveBtn.click(); }
+                    else {
+                        appToSave = w; filenameInput.value = 'Untitled';
+                        saveAsModal.classList.remove('hidden');
+                    }
+                });
+            });
+        }
+
+        // --- App Store Logic ---
+        function getInstalledApps() { return JSON.parse(localStorage.getItem('minimalOS_installed_apps') || '[]'); }
+        function saveInstalledApps(a) { localStorage.setItem('minimalOS_installed_apps', JSON.stringify(a)); }
+        
+        function renderAppStore() {
+            if (!appStoreList) return;
+            appStoreList.innerHTML = `
+                <div class="flex items-center justify-between p-3 mt-2 border panel-inset bg-gray-100">
+                    <div class="flex items-center">
+                        <svg class="w-10 h-10 mr-4" fill="currentColor" viewBox="0 0 20 20"><path d="M16 2H4a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zM6 16v-3H4v3H2V4h2v3h2V4h2v12H6zm3 0v-3H7V7h2v6zm3 0v-3h-2V7h2v6zm3 0v-3h-2V7h2v6z"></path></svg>
+                        <div><h3 class="font-bold">Pong</h3><p class="text-sm">Built-in Game</p></div>
+                    </div>
+                    <button class="btn-launch-app btn-outset px-4 h-8 text-sm font-bold" data-app="pong-window">Launch</button>
+                </div>`;
+            
+            getInstalledApps().forEach(app => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-3 mt-2 border panel-inset bg-gray-100";
+                div.innerHTML = `
+                    <div class="flex items-center">
+                        <svg class="w-10 h-10 mr-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm10 2H6v1h8V6zm0 3H6v1h8V9zm0 3H6v1h8v-1z" clip-rule="evenodd"></path></svg>
+                        <div><h3 class="font-bold">${app.name}</h3><p class="text-sm">User App</p></div>
+                    </div>
+                    <button class="btn-launch-app btn-outset px-4 h-8 text-sm font-bold" data-app="user-app-window" data-app-id="${app.id}">Launch</button>
+                `;
+                appStoreList.appendChild(div);
+            });
+        }
+
+        function setupAppStoreListeners() {
+            if (!installAppBtn) return;
+            installAppBtn.addEventListener('click', () => appUploadInput.click());
+            appUploadInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const apps = getInstalledApps();
+                    const content = ev.target.result;
+                    const existing = apps.find(a => a.name === file.name);
+                    if (existing) existing.content = content;
+                    else apps.push({ id: crypto.randomUUID(), name: file.name, content });
+                    saveInstalledApps(apps);
+                    renderAppStore();
+                };
+                reader.readAsText(file);
+                e.target.value = null;
+            });
+        }
+
+        function launchUserApp(id) {
+            const app = getInstalledApps().find(a => a.id === id);
+            if (!app) return;
+            openWindow('user-app-window');
+            const win = document.getElementById('user-app-window');
+            win.querySelector('.window-title-bar span').textContent = app.name;
+            userAppIframe.srcdoc = app.content;
+            win.setAttribute('data-app-id', id);
+        }
+
+        // --- Recursive OS ---
+        function loadRecursiveOSApp() {
+            if (!osInOsIframe) return;
+            if (!osInOsIframe.srcdoc) osInOsIframe.srcdoc = document.documentElement.outerHTML;
+        }
+
+        // --- Pong Logic ---
+        function setupPongListeners() {
+            if (!startPongGameBtn) return;
+            startPongGameBtn.addEventListener('click', initializePongGame);
+            pausePongGameBtn.addEventListener('click', () => {
+                pongGame.isPaused = !pongGame.isPaused;
+                if (pongGame.isPaused) {
+                    pongPauseScreen.classList.remove('hidden');
+                    pausePongGameBtn.textContent = 'Resume';
+                } else {
+                    pongPauseScreen.classList.add('hidden');
+                    pausePongGameBtn.textContent = 'Pause';
+                    if (!pongGame.animationFrameId) pongGameLoop();
+                }
+            });
+        }
+
+        function initializePongGame() {
+            if (!pongCanvas || pongWindow.classList.contains('hidden')) return;
+            pongErrorScreen.classList.add('hidden');
+            pongGame.canvasWidth = pongCanvas.width = pongCanvas.clientWidth;
+            pongGame.canvasHeight = pongCanvas.height = pongCanvas.clientHeight;
+            pongGame.player.y = pongGame.canvasHeight / 2 - 30;
+            pongGame.ai.y = pongGame.canvasHeight / 2 - 30;
+            pongGame.player.score = 0; pongGame.ai.score = 0;
+            pongPlayerScoreEl.textContent = '0'; pongAiScoreEl.textContent = '0';
+            
+            pongGame.ball.x = pongGame.canvasWidth / 2; pongGame.ball.y = pongGame.canvasHeight / 2;
+            pongGame.ball.dx = 4; pongGame.ball.dy = 2;
+            
+            pongGame.isPaused = false;
+            pongPauseScreen.classList.add('hidden');
+            pausePongGameBtn.textContent = 'Pause';
+            
+            if (pongGame.animationFrameId) cancelAnimationFrame(pongGame.animationFrameId);
+            pongGameLoop();
+        }
+
+        function pongGameLoop() {
+            if (pongGame.isPaused) {
+                pongGame.animationFrameId = requestAnimationFrame(pongGameLoop);
+                return;
+            }
+            try {
+                updatePong();
+                drawPong();
+                pongGame.animationFrameId = requestAnimationFrame(pongGameLoop);
+            } catch (e) {
+                console.error(e);
+                pongGame.isPaused = true;
+                pongErrorScreen.classList.remove('hidden');
+                pongErrorMessage.textContent = e.message;
+            }
+        }
+
+        function updatePong() {
+            const { ball, player, ai } = pongGame;
+            // Player Move
+            if (pongKeys.ArrowUp) player.y -= 5;
+            if (pongKeys.ArrowDown) player.y += 5;
+            if (player.y < 0) player.y = 0;
+            if (player.y + 60 > pongGame.canvasHeight) player.y = pongGame.canvasHeight - 60;
+
+            // Ball Move
+            ball.x += ball.dx; ball.y += ball.dy;
+            if (ball.y < 0 || ball.y > pongGame.canvasHeight) ball.dy = -ball.dy;
+            
+            // AI
+            const aiCenter = ai.y + 30;
+            if (aiCenter < ball.y - 15) ai.y += 3;
+            if (aiCenter > ball.y + 15) ai.y -= 3;
+            if (ai.y < 0) ai.y = 0; if (ai.y + 60 > pongGame.canvasHeight) ai.y = pongGame.canvasHeight - 60;
+
+            // Collision
+            if (ball.x < 10 && ball.y > player.y && ball.y < player.y + 60) {
+                ball.dx = Math.abs(ball.dx) * 1.05;
+                ball.x = 10;
+            }
+            if (ball.x > pongGame.canvasWidth - 10 && ball.y > ai.y && ball.y < ai.y + 60) {
+                ball.dx = -Math.abs(ball.dx) * 1.05;
+                ball.x = pongGame.canvasWidth - 10;
+            }
+
+            // Score
+            if (ball.x < 0) { pongGame.ai.score++; resetPongBall(); }
+            if (ball.x > pongGame.canvasWidth) { pongGame.player.score++; resetPongBall(); }
+            pongPlayerScoreEl.textContent = pongGame.player.score;
+            pongAiScoreEl.textContent = pongGame.ai.score;
+        }
+
+        function resetPongBall() {
+            pongGame.ball.x = pongGame.canvasWidth / 2;
+            pongGame.ball.y = pongGame.canvasHeight / 2;
+            pongGame.ball.dx = (Math.random() > 0.5 ? 1 : -1) * 4;
+            pongGame.ball.dy = (Math.random() - 0.5) * 4;
+        }
+
+        function drawPong() {
+            pongCtx.fillStyle = 'black';
+            pongCtx.fillRect(0,0,pongGame.canvasWidth, pongGame.canvasHeight);
+            pongCtx.fillStyle = 'white';
+            pongCtx.fillRect(pongGame.ball.x - 4, pongGame.ball.y - 4, 8, 8);
+            pongCtx.fillRect(0, pongGame.player.y, 10, 60);
+            pongCtx.fillRect(pongGame.canvasWidth - 10, pongGame.ai.y, 10, 60);
+            
+            pongCtx.setLineDash([5, 15]);
+            pongCtx.beginPath();
+            pongCtx.moveTo(pongGame.canvasWidth / 2, 0);
+            pongCtx.lineTo(pongGame.canvasWidth / 2, pongGame.canvasHeight);
+            pongCtx.strokeStyle = 'white';
+            pongCtx.stroke();
+            pongCtx.setLineDash([]);
+        }
+
+        // --- Global Keys ---
+        function setupGlobalKeys() {
+            document.addEventListener('keydown', (e) => {
+                if (e.shiftKey && e.key === 'Tab') {
+                    const active = document.activeElement;
+                    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+                    e.preventDefault();
+                    openWindow('os-in-os-window');
+                }
+                
+                // Pong Keys
+                if (e.key === 'ArrowUp') { pongKeys.ArrowUp = true; if(pongGame.isPaused && !pongWindow.classList.contains('hidden')) pausePongGameBtn.click(); }
+                if (e.key === 'ArrowDown') { pongKeys.ArrowDown = true; if(pongGame.isPaused && !pongWindow.classList.contains('hidden')) pausePongGameBtn.click(); }
+            });
+            document.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowUp') pongKeys.ArrowUp = false;
+                if (e.key === 'ArrowDown') pongKeys.ArrowDown = false;
+            });
+        }
+
+        // --- Context Menu ---
+        function setupContextMenu() {
+            document.addEventListener('contextmenu', (e) => {
+                if (e.target.closest('input') || e.target.closest('textarea')) return;
+                e.preventDefault();
+                contextMenu.classList.remove('hidden');
+                contextMenu.style.left = Math.min(e.clientX, window.innerWidth - 200) + 'px';
+                contextMenu.style.top = Math.min(e.clientY, window.innerHeight - 150) + 'px';
+            });
+            document.addEventListener('click', () => {
+                contextMenu.classList.add('hidden');
+                textContextMenu.classList.add('hidden');
+            });
+            
+            // Text Inputs Context Menu
+            const showTextMenu = (e) => {
+                e.preventDefault(); e.stopPropagation();
+                contextMenu.classList.add('hidden');
+                lastTextTarget = e.target;
+                const sel = window.getSelection().toString();
+                if (sel) textContextCopy.classList.remove('disabled'); else textContextCopy.classList.add('disabled');
+                if (osClipboardText) textContextPaste.classList.remove('disabled'); else textContextPaste.classList.add('disabled');
+                
+                textContextMenu.classList.remove('hidden');
+                textContextMenu.style.left = e.clientX + 'px';
+                textContextMenu.style.top = e.clientY + 'px';
+            };
+            document.addEventListener('focusin', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    e.target.removeEventListener('contextmenu', showTextMenu); // Prevent double bind
+                    e.target.addEventListener('contextmenu', showTextMenu);
+                }
+            });
+            
+            textContextCopy.addEventListener('click', () => {
+                if (!lastTextTarget) return;
+                osClipboardText = lastTextTarget.value.substring(lastTextTarget.selectionStart, lastTextTarget.selectionEnd);
+            });
+            textContextPaste.addEventListener('click', () => {
+                if (!lastTextTarget || !osClipboardText) return;
+                const start = lastTextTarget.selectionStart;
+                lastTextTarget.value = lastTextTarget.value.substring(0, start) + osClipboardText + lastTextTarget.value.substring(lastTextTarget.selectionEnd);
+            });
+            
+            document.getElementById('context-fullscreen').addEventListener('click', () => {
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+            });
+        }
+
+    </script>
+</body>
+</html>
